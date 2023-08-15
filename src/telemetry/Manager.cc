@@ -11,8 +11,26 @@
 #include "zeek/broker/Manager.h"
 #include "zeek/telemetry/Timer.h"
 #include "zeek/telemetry/telemetry.bif.h"
+#include "zeek/zeek-version.h"
 
 #include "broker/telemetry/metric_registry.hh"
+#include "opentelemetry/exporters/ostream/metric_exporter_factory.h"
+#include "opentelemetry/exporters/prometheus/exporter_factory.h"
+#include "opentelemetry/exporters/prometheus/exporter_options.h"
+#include "opentelemetry/metrics/provider.h"
+#include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader_factory.h"
+#include "opentelemetry/sdk/metrics/meter.h"
+#include "opentelemetry/sdk/metrics/meter_provider.h"
+#include "opentelemetry/sdk/metrics/meter_provider_factory.h"
+#include "opentelemetry/sdk/metrics/push_metric_exporter.h"
+#include "opentelemetry/sdk/metrics/view/instrument_selector_factory.h"
+#include "opentelemetry/sdk/metrics/view/meter_selector_factory.h"
+#include "opentelemetry/sdk/metrics/view/view_factory.h"
+
+namespace metrics_sdk = opentelemetry::sdk::metrics;
+namespace common = opentelemetry::common;
+namespace exportermetrics = opentelemetry::exporter::metrics;
+namespace metrics_api = opentelemetry::metrics;
 
 namespace
 	{
@@ -52,19 +70,42 @@ namespace zeek::telemetry
 	{
 
 Manager::Manager()
+	: metrics_name("zeek"), metrics_version(VERSION),
+	  metrics_schema("https://opentelemetry.io/schemas/1.2.0")
 	{
 	auto reg = NativeManager::pre_init_instance();
 	NativeManagerImplPtr ptr{NewRef{}, reg.pimpl()};
 	pimpl.swap(ptr);
+
+	auto meter_provider = metrics_sdk::MeterProviderFactory::Create();
+	auto* p = static_cast<metrics_sdk::MeterProvider*>(meter_provider.release());
+	std::shared_ptr<metrics_api::MeterProvider> provider_sp(p);
+	metrics_api::Provider::SetMeterProvider(provider_sp);
 	}
 
-void Manager::InitPostScript() { }
-
-void Manager::InitPostBrokerSetup(broker::endpoint& ep)
+Manager::~Manager()
 	{
-	auto reg = NativeManager::merge(NativeManager{pimpl.get()}, ep);
-	NativeManagerImplPtr ptr{NewRef{}, reg.pimpl()};
-	pimpl.swap(ptr);
+	std::shared_ptr<opentelemetry::metrics::MeterProvider> none;
+	metrics_api::Provider::SetMeterProvider(none);
+	}
+
+void Manager::InitPostScript()
+	{
+	auto mp = metrics_api::Provider::GetMeterProvider();
+	auto* p = static_cast<metrics_sdk::MeterProvider*>(mp.get());
+
+	// opentelemetry::exporter::metrics::PrometheusExporterOptions exporter_options;
+	// exporter_options.url = "localhost:4040";
+	// auto exporter = exportermetrics::PrometheusExporterFactory::Create(exporter_options);
+	// p->AddMetricReader(std::move(exporter));
+
+	auto os_exporter = exportermetrics::OStreamMetricExporterFactory::Create();
+	metrics_sdk::PeriodicExportingMetricReaderOptions options;
+	options.export_interval_millis = std::chrono::milliseconds(1000);
+	options.export_timeout_millis = std::chrono::milliseconds(500);
+	auto reader = metrics_sdk::PeriodicExportingMetricReaderFactory::Create(std::move(os_exporter),
+	                                                                        options);
+	p->AddMetricReader(std::move(reader));
 	}
 
 // -- collect metric stuff -----------------------------------------------------
