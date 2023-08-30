@@ -11,11 +11,11 @@ IntGaugeFamily::IntGaugeFamily(std::string_view prefix, std::string_view name,
 	{
 	}
 
-IntGauge IntGaugeFamily::GetOrAdd(Span<const LabelView> labels)
+std::shared_ptr<IntGauge> IntGaugeFamily::GetOrAdd(Span<const LabelView> labels)
 	{
 	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
 	auto m = p->GetMeter(prefix);
-	return IntGauge{m->CreateInt64UpDownCounter(name, helptext, unit), labels};
+	return std::make_shared<IntGauge>(m->CreateInt64UpDownCounter(name, helptext, unit), labels);
 	}
 
 IntGauge::IntGauge(opentelemetry::nostd::shared_ptr<Handle> hdl,
@@ -31,11 +31,11 @@ DblGaugeFamily::DblGaugeFamily(std::string_view prefix, std::string_view name,
 	{
 	}
 
-DblGauge DblGaugeFamily::GetOrAdd(Span<const LabelView> labels)
+std::shared_ptr<DblGauge> DblGaugeFamily::GetOrAdd(Span<const LabelView> labels)
 	{
 	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
 	auto m = p->GetMeter(prefix);
-	return DblGauge{m->CreateDoubleUpDownCounter(name, helptext, unit), labels};
+	return std::make_shared<DblGauge>(m->CreateDoubleUpDownCounter(name, helptext, unit), labels);
 	}
 
 DblGauge::DblGauge(opentelemetry::nostd::shared_ptr<Handle> hdl,

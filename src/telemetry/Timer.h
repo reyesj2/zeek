@@ -17,7 +17,7 @@ class [[nodiscard]] Timer
 public:
 	using Clock = std::chrono::steady_clock;
 
-	explicit Timer(DblHistogram h) : h_(h) { start_ = Clock::now(); }
+	explicit Timer(const DblHistogram& h) : h_(h) { start_ = Clock::now(); }
 
 	Timer(const Timer&) = delete;
 

@@ -24,9 +24,11 @@ class Manager;
 class IntCounter
 	{
 public:
-	friend class IntCounterFamily;
-
+	using Handle = opentelemetry::metrics::Counter<uint64_t>;
 	static inline const char* OpaqueName = "IntCounterMetricVal";
+
+	explicit IntCounter(opentelemetry::nostd::shared_ptr<Handle> hdl,
+	                    Span<const LabelView> labels) noexcept;
 
 	IntCounter() = delete;
 	IntCounter(const IntCounter&) noexcept = default;
@@ -75,11 +77,6 @@ public:
 	bool operator!=(const IntCounter& rhs) const noexcept { return ! IsSameAs(rhs); }
 
 private:
-	using Handle = opentelemetry::metrics::Counter<uint64_t>;
-
-	explicit IntCounter(opentelemetry::nostd::shared_ptr<Handle> hdl,
-	                    Span<const LabelView> labels) noexcept;
-
 	opentelemetry::nostd::shared_ptr<Handle> hdl;
 	MetricAttributeIterable attributes;
 	uint64_t value = 0;
@@ -91,11 +88,13 @@ private:
 class IntCounterFamily : public MetricFamily
 	{
 public:
-	friend class Manager;
-
 	static inline const char* OpaqueName = "IntCounterMetricFamilyVal";
 
 	using InstanceType = IntCounter;
+
+	explicit IntCounterFamily(std::string_view prefix, std::string_view name,
+	                          Span<const std::string_view> labels, std::string_view helptext,
+	                          std::string_view unit = "1", bool is_sum = false);
 
 	IntCounterFamily(const IntCounterFamily&) noexcept = default;
 	IntCounterFamily& operator=(const IntCounterFamily&) noexcept = default;
@@ -104,20 +103,15 @@ public:
 	 * Returns the metrics handle for given labels, creating a new instance
 	 * lazily if necessary.
 	 */
-	IntCounter GetOrAdd(Span<const LabelView> labels);
+	std::shared_ptr<IntCounter> GetOrAdd(Span<const LabelView> labels);
 
 	/**
 	 * @copydoc GetOrAdd
 	 */
-	IntCounter GetOrAdd(std::initializer_list<LabelView> labels)
+	std::shared_ptr<IntCounter> GetOrAdd(std::initializer_list<LabelView> labels)
 		{
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
-
-private:
-	explicit IntCounterFamily(std::string_view prefix, std::string_view name,
-	                          Span<const std::string_view> labels, std::string_view helptext,
-	                          std::string_view unit = "1", bool is_sum = false);
 	};
 
 /**
@@ -127,7 +121,10 @@ private:
 class DblCounter
 	{
 public:
-	friend class DblCounterFamily;
+	using Handle = opentelemetry::metrics::Counter<double>;
+
+	explicit DblCounter(opentelemetry::nostd::shared_ptr<Handle> hdl,
+	                    Span<const LabelView> labels) noexcept;
 
 	static inline const char* OpaqueName = "DblCounterMetricVal";
 
@@ -168,11 +165,6 @@ public:
 	bool operator!=(const DblCounter& rhs) const noexcept { return ! IsSameAs(rhs); }
 
 private:
-	using Handle = opentelemetry::metrics::Counter<double>;
-
-	explicit DblCounter(opentelemetry::nostd::shared_ptr<Handle> hdl,
-	                    Span<const LabelView> labels) noexcept;
-
 	opentelemetry::nostd::shared_ptr<Handle> hdl;
 	MetricAttributeIterable attributes;
 	double value = 0;
@@ -184,11 +176,13 @@ private:
 class DblCounterFamily : public MetricFamily
 	{
 public:
-	friend class Manager;
-
 	static inline const char* OpaqueName = "DblCounterMetricFamilyVal";
 
 	using InstanceType = DblCounter;
+
+	explicit DblCounterFamily(std::string_view prefix, std::string_view name,
+	                          Span<const std::string_view> labels, std::string_view helptext,
+	                          std::string_view unit = "1", bool is_sum = false);
 
 	DblCounterFamily(const DblCounterFamily&) noexcept = default;
 	DblCounterFamily& operator=(const DblCounterFamily&) noexcept = default;
@@ -197,20 +191,15 @@ public:
 	 * Returns the metrics handle for given labels, creating a new instance
 	 * lazily if necessary.
 	 */
-	DblCounter GetOrAdd(Span<const LabelView> labels);
+	std::shared_ptr<DblCounter> GetOrAdd(Span<const LabelView> labels);
 
 	/**
 	 * @copydoc GetOrAdd
 	 */
-	DblCounter GetOrAdd(std::initializer_list<LabelView> labels)
+	std::shared_ptr<DblCounter> GetOrAdd(std::initializer_list<LabelView> labels)
 		{
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
-
-private:
-	explicit DblCounterFamily(std::string_view prefix, std::string_view name,
-	                          Span<const std::string_view> labels, std::string_view helptext,
-	                          std::string_view unit = "1", bool is_sum = false);
 	};
 
 namespace detail

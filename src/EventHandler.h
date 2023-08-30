@@ -76,7 +76,7 @@ private:
 	bool generate_always;
 
 	// Initialize this lazy, so we don't expose metrics for 0 values.
-	std::optional<zeek::telemetry::IntCounter> call_count;
+	std::shared_ptr<zeek::telemetry::IntCounter> call_count;
 
 	std::unordered_set<std::string> auto_publish;
 	};
