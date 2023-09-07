@@ -15,7 +15,8 @@ std::shared_ptr<IntCounter> IntCounterFamily::GetOrAdd(Span<const LabelView> lab
 	{
 	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
 	auto m = p->GetMeter(prefix);
-	return std::make_shared<IntCounter>(m->CreateUInt64Counter(name, helptext, unit), labels);
+	return std::make_shared<IntCounter>(m->CreateUInt64Counter(prefix + "-" + name, helptext, unit),
+	                                    labels);
 	}
 
 IntCounter::IntCounter(opentelemetry::nostd::shared_ptr<Handle> hdl,
@@ -35,7 +36,8 @@ std::shared_ptr<DblCounter> DblCounterFamily::GetOrAdd(Span<const LabelView> lab
 	{
 	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
 	auto m = p->GetMeter(prefix);
-	return std::make_shared<DblCounter>(m->CreateDoubleCounter(name, helptext, unit), labels);
+	return std::make_shared<DblCounter>(m->CreateDoubleCounter(prefix + "-" + name, helptext, unit),
+	                                    labels);
 	}
 
 DblCounter::DblCounter(opentelemetry::nostd::shared_ptr<Handle> hdl,

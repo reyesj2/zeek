@@ -16,7 +16,8 @@ std::shared_ptr<IntHistogram> IntHistogramFamily::GetOrAdd(Span<const LabelView>
 	{
 	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
 	auto m = p->GetMeter(prefix);
-	return std::make_shared<IntHistogram>(m->CreateUInt64Histogram(name, helptext, unit), labels);
+	return std::make_shared<IntHistogram>(
+		m->CreateUInt64Histogram(prefix + "-" + name, helptext, unit), labels);
 	}
 
 IntHistogram::IntHistogram(opentelemetry::nostd::shared_ptr<Handle> hdl,
@@ -37,7 +38,8 @@ std::shared_ptr<DblHistogram> DblHistogramFamily::GetOrAdd(Span<const LabelView>
 	{
 	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
 	auto m = p->GetMeter(prefix);
-	return std::make_shared<DblHistogram>(m->CreateDoubleHistogram(name, helptext, unit), labels);
+	return std::make_shared<DblHistogram>(
+		m->CreateDoubleHistogram(prefix + "-" + name, helptext, unit), labels);
 	}
 
 DblHistogram::DblHistogram(opentelemetry::nostd::shared_ptr<Handle> hdl,
