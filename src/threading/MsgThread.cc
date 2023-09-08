@@ -278,18 +278,23 @@ void MsgThread::OnWaitForStop()
 				{
 				// Abort all threads here so that we won't hang next
 				// on another one.
-				fprintf(stderr, "received signal while waiting for thread %s, aborting all ...\n",
-				        Name());
+				fprintf(stderr, "MsgThread::OnWaitForStop(): Still have %llu messages to process\n",
+				        queue_out.Size());
+				fprintf(stderr,
+				        "received signal (%d) while waiting for thread %s, aborting all ...\n",
+				        signal_val, Name());
 				thread_mgr->KillThreads();
 				}
 			else
 				{
 				// More than one signal. Abort processing
 				// right away. on another one.
-				fprintf(
-					stderr,
-					"received another signal while waiting for thread %s, aborting processing\n",
-					Name());
+				fprintf(stderr, "MsgThread::OnWaitForStop(): Still have %llu messages to process\n",
+				        queue_out.Size());
+				fprintf(stderr,
+				        "received another signal (%d) while waiting for thread %s, aborting "
+				        "processing\n",
+				        signal_val, Name());
 				exit(1);
 				}
 
