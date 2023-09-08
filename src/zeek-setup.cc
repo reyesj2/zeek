@@ -464,6 +464,11 @@ RETSIGTYPE sig_handler(int signo)
 	return RETSIGVAL;
 	}
 
+void sigaction_handler(int signo, siginfo_t* info, void* context)
+	{
+	fprintf(stderr, "pid %d: signal %d from pid %d\n", getpid(), info->si_signo, info->si_pid);
+	}
+
 static void atexit_handler()
 	{
 	util::detail::set_processing_status("TERMINATED", "atexit");
@@ -1009,6 +1014,11 @@ SetupResult setup(int argc, char** argv, Options* zopts)
 			(void)setsignal(SIGTERM, sig_handler);
 			(void)setsignal(SIGINT, sig_handler);
 			(void)setsignal(SIGPIPE, SIG_IGN);
+
+			struct sigaction act = {};
+			act.sa_flags = SA_SIGINFO;
+			act.sa_sigaction = &sigaction_handler;
+			(void)sigaction(SIGTERM, &act, NULL);
 			}
 
 		// Cooperate with nohup(1).
