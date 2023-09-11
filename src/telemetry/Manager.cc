@@ -14,6 +14,7 @@
 #include "zeek/zeek-version.h"
 
 #include "broker/telemetry/metric_registry.hh"
+#include "opentelemetry/exporters/memory/in_memory_metric_exporter_factory.h"
 #include "opentelemetry/exporters/ostream/metric_exporter_factory.h"
 #include "opentelemetry/exporters/prometheus/exporter_factory.h"
 #include "opentelemetry/exporters/prometheus/exporter_options.h"
@@ -94,18 +95,39 @@ void Manager::InitPostScript()
 	auto mp = metrics_api::Provider::GetMeterProvider();
 	auto* p = static_cast<metrics_sdk::MeterProvider*>(mp.get());
 
-	// opentelemetry::exporter::metrics::PrometheusExporterOptions exporter_options;
-	// exporter_options.url = "localhost:4040";
-	// auto exporter = exportermetrics::PrometheusExporterFactory::Create(exporter_options);
-	// p->AddMetricReader(std::move(exporter));
+	opentelemetry::exporter::metrics::PrometheusExporterOptions exporter_options;
+	exporter_options.url = "localhost:4040";
+	auto exporter = exportermetrics::PrometheusExporterFactory::Create(exporter_options);
+	p->AddMetricReader(std::move(exporter));
 
 	auto os_exporter = exportermetrics::OStreamMetricExporterFactory::Create();
+	auto im_exporter = exportermetrics::InMemoryMetricExporterFactory::Create();
 	metrics_sdk::PeriodicExportingMetricReaderOptions options;
 	options.export_interval_millis = std::chrono::milliseconds(1000);
 	options.export_timeout_millis = std::chrono::milliseconds(500);
 	auto reader = metrics_sdk::PeriodicExportingMetricReaderFactory::Create(std::move(os_exporter),
 	                                                                        options);
 	p->AddMetricReader(std::move(reader));
+
+	std::string counter_name = metrics_name + "_counter";
+	auto instrument_selector = metrics_sdk::InstrumentSelectorFactory::Create(
+		metrics_sdk::InstrumentType::kCounter, counter_name, "");
+	auto meter_selector = metrics_sdk::MeterSelectorFactory::Create(metrics_name, metrics_version,
+	                                                                metrics_schema);
+	auto sum_view = metrics_sdk::ViewFactory::Create(metrics_name, "description", "",
+	                                                 metrics_sdk::AggregationType::kSum);
+	p->AddView(std::move(instrument_selector), std::move(meter_selector), std::move(sum_view));
+
+	// histogram view
+	std::string histogram_name = metrics_name + "_histogram";
+	auto histogram_instrument_selector = metrics_sdk::InstrumentSelectorFactory::Create(
+		metrics_sdk::InstrumentType::kHistogram, counter_name, "");
+	auto histogram_meter_selector = metrics_sdk::MeterSelectorFactory::Create(
+		histogram_name, metrics_version, metrics_schema);
+	auto histogram_view = metrics_sdk::ViewFactory::Create(
+		histogram_name, "description", "", metrics_sdk::AggregationType::kHistogram);
+	p->AddView(std::move(histogram_instrument_selector), std::move(histogram_meter_selector),
+	           std::move(histogram_view));
 	}
 
 // -- collect metric stuff -----------------------------------------------------
