@@ -134,4 +134,9 @@ void EventHandler::NewEvent(Args* vl)
 	event_mgr.Dispatch(ev);
 	}
 
+uint64_t EventHandler::CallCount() const
+	{
+	return call_count ? call_count->Value() : 0;
+	}
+
 	} // namespace zeek
