@@ -24,10 +24,9 @@ class Manager;
 class IntCounter
 	{
 public:
-	using Handle = opentelemetry::metrics::Counter<uint64_t>;
 	static inline const char* OpaqueName = "IntCounterMetricVal";
 
-	explicit IntCounter(opentelemetry::nostd::shared_ptr<Handle> hdl,
+	explicit IntCounter(std::shared_ptr<IntCounterFamily> family,
 	                    Span<const LabelView> labels) noexcept;
 
 	IntCounter() = delete;
@@ -37,31 +36,19 @@ public:
 	/**
 	 * Increments the value by 1.
 	 */
-	void Inc() noexcept
-		{
-		hdl->Add(1, attributes);
-		value++;
-		}
+	void Inc() noexcept;
 
 	/**
 	 * Increments the value by @p amount.
 	 * @pre `amount >= 0`
 	 */
-	void Inc(uint64_t amount) noexcept
-		{
-		hdl->Add(amount, attributes);
-		value += amount;
-		}
+	void Inc(uint64_t amount) noexcept;
 
 	/**
 	 * Increments the value by 1.
 	 * @return The new value.
 	 */
-	uint64_t operator++() noexcept
-		{
-		Inc();
-		return value;
-		}
+	uint64_t operator++() noexcept;
 
 	/**
 	 * @return The current value.
@@ -71,13 +58,16 @@ public:
 	/**
 	 * @return Whether @c this and @p other refer to the same counter.
 	 */
-	bool IsSameAs(const IntCounter& other) const noexcept { return hdl == other.hdl; }
+	bool IsSameAs(const IntCounter& other) const noexcept
+		{
+		return family == other.family && attributes == other.attributes;
+		}
 
 	bool operator==(const IntCounter& rhs) const noexcept { return IsSameAs(rhs); }
 	bool operator!=(const IntCounter& rhs) const noexcept { return ! IsSameAs(rhs); }
 
 private:
-	opentelemetry::nostd::shared_ptr<Handle> hdl;
+	std::shared_ptr<IntCounterFamily> family;
 	MetricAttributeIterable attributes;
 	uint64_t value = 0;
 	};
@@ -85,7 +75,7 @@ private:
 /**
  * Manages a collection of IntCounter metrics.
  */
-class IntCounterFamily : public MetricFamily
+class IntCounterFamily : public MetricFamily, public std::enable_shared_from_this<IntCounterFamily>
 	{
 public:
 	static inline const char* OpaqueName = "IntCounterMetricFamilyVal";
@@ -112,6 +102,13 @@ public:
 		{
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
+
+private:
+	friend class IntCounter;
+
+	using Handle = opentelemetry::metrics::Counter<uint64_t>;
+
+	opentelemetry::nostd::shared_ptr<Handle> instrument;
 	};
 
 /**
@@ -121,9 +118,7 @@ public:
 class DblCounter
 	{
 public:
-	using Handle = opentelemetry::metrics::Counter<double>;
-
-	explicit DblCounter(opentelemetry::nostd::shared_ptr<Handle> hdl,
+	explicit DblCounter(std::shared_ptr<DblCounterFamily> family,
 	                    Span<const LabelView> labels) noexcept;
 
 	static inline const char* OpaqueName = "DblCounterMetricVal";
@@ -135,21 +130,13 @@ public:
 	/**
 	 * Increments the value by 1.
 	 */
-	void Inc() noexcept
-		{
-		hdl->Add(1, attributes);
-		value++;
-		}
+	void Inc() noexcept;
 
 	/**
 	 * Increments the value by @p amount.
 	 * @pre `amount >= 0`
 	 */
-	void Inc(double amount) noexcept
-		{
-		hdl->Add(amount, attributes);
-		value += amount;
-		}
+	void Inc(double amount) noexcept;
 
 	/**
 	 * @return The current value.
@@ -159,13 +146,16 @@ public:
 	/**
 	 * @return Whether @c this and @p other refer to the same counter.
 	 */
-	bool IsSameAs(const DblCounter& other) const noexcept { return hdl == other.hdl; }
+	bool IsSameAs(const DblCounter& other) const noexcept
+		{
+		return family == other.family && attributes == other.attributes;
+		}
 
 	bool operator==(const DblCounter& rhs) const noexcept { return IsSameAs(rhs); }
 	bool operator!=(const DblCounter& rhs) const noexcept { return ! IsSameAs(rhs); }
 
 private:
-	opentelemetry::nostd::shared_ptr<Handle> hdl;
+	std::shared_ptr<DblCounterFamily> family;
 	MetricAttributeIterable attributes;
 	double value = 0;
 	};
@@ -173,7 +163,7 @@ private:
 /**
  * Manages a collection of DblCounter metrics.
  */
-class DblCounterFamily : public MetricFamily
+class DblCounterFamily : public MetricFamily, public std::enable_shared_from_this<DblCounterFamily>
 	{
 public:
 	static inline const char* OpaqueName = "DblCounterMetricFamilyVal";
@@ -200,6 +190,13 @@ public:
 		{
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
+
+private:
+	friend class DblCounter;
+
+	using Handle = opentelemetry::metrics::Counter<double>;
+
+	opentelemetry::nostd::shared_ptr<Handle> instrument;
 	};
 
 namespace detail

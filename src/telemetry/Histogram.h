@@ -28,9 +28,7 @@ class IntHistogram
 public:
 	static inline const char* OpaqueName = "IntHistogramMetricVal";
 
-	using Handle = opentelemetry::metrics::Histogram<uint64_t>;
-
-	explicit IntHistogram(opentelemetry::nostd::shared_ptr<Handle> hdl,
+	explicit IntHistogram(std::shared_ptr<IntHistogramFamily> family,
 	                      Span<const LabelView> labels) noexcept;
 
 	IntHistogram() = delete;
@@ -41,11 +39,7 @@ public:
 	 * Increments all buckets with an upper bound less than or equal to @p value
 	 * by one and adds @p value to the total sum of all observed values.
 	 */
-	void Observe(uint64_t value) noexcept
-		{
-		hdl->Record(value, attributes, context);
-		sum += value;
-		}
+	void Observe(uint64_t value) noexcept;
 
 	/// @return The sum of all observed values.
 	uint64_t Sum() const noexcept { return sum; }
@@ -64,20 +58,23 @@ public:
 	// /// @return The upper bound of the bucket at @p index.
 	// /// @pre index < NumBuckets()
 	// uint64_t UpperBoundAt(size_t index) const noexcept
-	//  	{
-	//  	return broker::telemetry::upper_bound_at(hdl, index);
-	//  	}
+	//		{
+	//		return broker::telemetry::upper_bound_at(hdl, index);
+	//		}
 
 	/**
 	 * @return Whether @c this and @p other refer to the same histogram.
 	 */
-	bool IsSameAs(const IntHistogram& other) const noexcept { return hdl == other.hdl; }
+	bool IsSameAs(const IntHistogram& other) const noexcept
+		{
+		return family == other.family && attributes == other.attributes;
+		}
 
 	bool operator==(const IntHistogram& other) const noexcept { return IsSameAs(other); }
 	bool operator!=(const IntHistogram& other) const noexcept { return ! IsSameAs(other); }
 
 private:
-	opentelemetry::nostd::shared_ptr<Handle> hdl;
+	std::shared_ptr<IntHistogramFamily> family;
 	MetricAttributeIterable attributes;
 	opentelemetry::context::Context context;
 	uint64_t sum = 0;
@@ -86,7 +83,8 @@ private:
 /**
  * Manages a collection of IntHistogram metrics.
  */
-class IntHistogramFamily : public MetricFamily
+class IntHistogramFamily : public MetricFamily,
+						   public std::enable_shared_from_this<IntHistogramFamily>
 	{
 public:
 	static inline const char* OpaqueName = "IntHistogramMetricFamilyVal";
@@ -113,6 +111,13 @@ public:
 		{
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
+
+private:
+	friend class IntHistogram;
+
+	using Handle = opentelemetry::metrics::Histogram<uint64_t>;
+
+	opentelemetry::nostd::shared_ptr<Handle> instrument;
 	};
 
 /**
@@ -125,9 +130,7 @@ class DblHistogram
 public:
 	static inline const char* OpaqueName = "DblHistogramMetricVal";
 
-	using Handle = opentelemetry::metrics::Histogram<double>;
-
-	explicit DblHistogram(opentelemetry::nostd::shared_ptr<Handle> hdl,
+	explicit DblHistogram(std::shared_ptr<DblHistogramFamily> family,
 	                      Span<const LabelView> labels) noexcept;
 
 	DblHistogram() = delete;
@@ -138,11 +141,7 @@ public:
 	 * Increments all buckets with an upper bound less than or equal to @p value
 	 * by one and adds @p value to the total sum of all observed values.
 	 */
-	void Observe(double value) noexcept
-		{
-		hdl->Record(value, attributes, context);
-		sum += value;
-		}
+	void Observe(double value) noexcept;
 
 	/// @return The sum of all observed values.
 	double Sum() const noexcept { return sum; }
@@ -161,20 +160,23 @@ public:
 	// /// @return The upper bound of the bucket at @p index.
 	// /// @pre index < NumBuckets()
 	// double UpperBoundAt(size_t index) const noexcept
-	// 	{
-	// 	return broker::telemetry::upper_bound_at(hdl, index);
-	// 	}
+	//	{
+	//	return broker::telemetry::upper_bound_at(hdl, index);
+	//	}
 
 	/**
 	 * @return Whether @c this and @p other refer to the same histogram.
 	 */
-	bool IsSameAs(const DblHistogram& other) const noexcept { return hdl == other.hdl; }
+	bool IsSameAs(const DblHistogram& other) const noexcept
+		{
+		return family == other.family && attributes == other.attributes;
+		}
 
 	bool operator==(const DblHistogram& other) const noexcept { return IsSameAs(other); }
 	bool operator!=(const DblHistogram& other) const noexcept { return ! IsSameAs(other); }
 
 private:
-	opentelemetry::nostd::shared_ptr<Handle> hdl;
+	std::shared_ptr<DblHistogramFamily> family;
 	MetricAttributeIterable attributes;
 	opentelemetry::context::Context context;
 	double sum = 0;
@@ -183,7 +185,8 @@ private:
 /**
  * Manages a collection of DblHistogram metrics.
  */
-class DblHistogramFamily : public MetricFamily
+class DblHistogramFamily : public MetricFamily,
+						   public std::enable_shared_from_this<DblHistogramFamily>
 	{
 public:
 	static inline const char* OpaqueName = "DblHistogramMetricFamilyVal";
@@ -212,6 +215,11 @@ public:
 		}
 
 private:
+	friend class DblHistogram;
+
+	using Handle = opentelemetry::metrics::Histogram<double>;
+
+	opentelemetry::nostd::shared_ptr<Handle> instrument;
 	};
 
 namespace detail

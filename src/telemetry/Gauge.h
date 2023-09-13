@@ -27,8 +27,7 @@ class IntGauge
 public:
 	static inline const char* OpaqueName = "IntGaugeMetricVal";
 
-	using Handle = opentelemetry::metrics::UpDownCounter<int64_t>;
-	explicit IntGauge(opentelemetry::nostd::shared_ptr<Handle> hdl,
+	explicit IntGauge(std::shared_ptr<IntGaugeFamily> family,
 	                  Span<const LabelView> labels) noexcept;
 
 	IntGauge() = delete;
@@ -38,58 +37,34 @@ public:
 	/**
 	 * Increments the value by 1.
 	 */
-	void Inc() noexcept
-		{
-		hdl->Add(1, attributes);
-		value++;
-		}
+	void Inc() noexcept;
 
 	/**
 	 * Increments the value by @p amount.
 	 */
-	void Inc(int64_t amount) noexcept
-		{
-		hdl->Add(amount, attributes);
-		value += amount;
-		}
+	void Inc(int64_t amount) noexcept;
 
 	/**
 	 * Increments the value by 1.
 	 * @return The new value.
 	 */
-	int64_t operator++() noexcept
-		{
-		Inc();
-		return value;
-		}
+	int64_t operator++() noexcept;
 
 	/**
 	 * Decrements the value by 1.
 	 */
-	void Dec() noexcept
-		{
-		hdl->Add(-1, attributes);
-		value--;
-		}
+	void Dec() noexcept;
 
 	/**
 	 * Decrements the value by @p amount.
 	 */
-	void Dec(int64_t amount) noexcept
-		{
-		hdl->Add(amount * -1);
-		value -= amount;
-		}
+	void Dec(int64_t amount) noexcept;
 
 	/**
 	 * Decrements the value by 1.
 	 * @return The new value.
 	 */
-	int64_t operator--() noexcept
-		{
-		Dec();
-		return value;
-		}
+	int64_t operator--() noexcept;
 
 	/**
 	 * @return The current value.
@@ -99,13 +74,16 @@ public:
 	/**
 	 * @return Whether @c this and @p other refer to the same counter.
 	 */
-	bool IsSameAs(const IntGauge& other) const noexcept { return hdl == other.hdl; }
+	bool IsSameAs(const IntGauge& other) const noexcept
+		{
+		return family == other.family && attributes == other.attributes;
+		}
 
 	bool operator==(const IntGauge& rhs) const noexcept { return IsSameAs(rhs); }
 	bool operator!=(const IntGauge& rhs) const noexcept { return ! IsSameAs(rhs); }
 
 private:
-	opentelemetry::nostd::shared_ptr<Handle> hdl;
+	std::shared_ptr<IntGaugeFamily> family;
 	MetricAttributeIterable attributes;
 	int64_t value = 0;
 	};
@@ -113,7 +91,7 @@ private:
 /**
  * Manages a collection of IntGauge metrics.
  */
-class IntGaugeFamily : public MetricFamily
+class IntGaugeFamily : public MetricFamily, public std::enable_shared_from_this<IntGaugeFamily>
 	{
 public:
 	static inline const char* OpaqueName = "IntGaugeMetricFamilyVal";
@@ -140,6 +118,13 @@ public:
 		{
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
+
+private:
+	friend class IntGauge;
+
+	using Handle = opentelemetry::metrics::UpDownCounter<int64_t>;
+
+	opentelemetry::nostd::shared_ptr<Handle> instrument;
 	};
 
 /**
@@ -151,9 +136,7 @@ class DblGauge
 public:
 	static inline const char* OpaqueName = "DblGaugeMetricVal";
 
-	using Handle = opentelemetry::metrics::UpDownCounter<double>;
-
-	explicit DblGauge(opentelemetry::nostd::shared_ptr<Handle> hdl,
+	explicit DblGauge(std::shared_ptr<DblGaugeFamily> family,
 	                  Span<const LabelView> labels) noexcept;
 
 	DblGauge() = delete;
@@ -163,38 +146,22 @@ public:
 	/**
 	 * Increments the value by 1.
 	 */
-	void Inc() noexcept
-		{
-		hdl->Add(1, attributes);
-		value++;
-		}
+	void Inc() noexcept;
 
 	/**
 	 * Increments the value by @p amount.
 	 */
-	void Inc(double amount) noexcept
-		{
-		hdl->Add(amount, attributes);
-		value += amount;
-		}
+	void Inc(double amount) noexcept;
 
 	/**
 	 * Increments the value by 1.
 	 */
-	void Dec() noexcept
-		{
-		hdl->Add(-1, attributes);
-		value--;
-		}
+	void Dec() noexcept;
 
 	/**
 	 * Increments the value by @p amount.
 	 */
-	void Dec(double amount) noexcept
-		{
-		hdl->Add(amount * -1, attributes);
-		value -= amount;
-		}
+	void Dec(double amount) noexcept;
 
 	/**
 	 * @return The current value.
@@ -204,13 +171,16 @@ public:
 	/**
 	 * @return Whether @c this and @p other refer to the same counter.
 	 */
-	bool IsSameAs(const DblGauge& other) const noexcept { return hdl == other.hdl; }
+	bool IsSameAs(const DblGauge& other) const noexcept
+		{
+		return family == other.family && attributes == other.attributes;
+		}
 
 	bool operator==(const DblGauge& rhs) const noexcept { return IsSameAs(rhs); }
 	bool operator!=(const DblGauge& rhs) const noexcept { return ! IsSameAs(rhs); }
 
 private:
-	opentelemetry::nostd::shared_ptr<Handle> hdl;
+	std::shared_ptr<DblGaugeFamily> family;
 	MetricAttributeIterable attributes;
 	double value = 0;
 	};
@@ -218,7 +188,7 @@ private:
 /**
  * Manages a collection of DblGauge metrics.
  */
-class DblGaugeFamily : public MetricFamily
+class DblGaugeFamily : public MetricFamily, public std::enable_shared_from_this<DblGaugeFamily>
 	{
 public:
 	static inline const char* OpaqueName = "DblGaugeMetricFamilyVal";
@@ -245,6 +215,13 @@ public:
 		{
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
+
+private:
+	friend class DblGauge;
+
+	using Handle = opentelemetry::metrics::UpDownCounter<double>;
+
+	opentelemetry::nostd::shared_ptr<Handle> instrument;
 	};
 
 namespace detail

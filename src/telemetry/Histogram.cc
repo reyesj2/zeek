@@ -10,20 +10,27 @@ IntHistogramFamily::IntHistogramFamily(std::string_view prefix, std::string_view
                                        bool is_sum)
 	: MetricFamily(prefix, name, labels, helptext, unit, is_sum)
 	{
+	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
+	auto m = p->GetMeter(std::string{prefix});
+	instrument = m->CreateUInt64Histogram(std::string{prefix} + "-" + std::string{name},
+	                                      std::string{helptext}, std::string{unit});
 	}
 
 std::shared_ptr<IntHistogram> IntHistogramFamily::GetOrAdd(Span<const LabelView> labels)
 	{
-	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
-	auto m = p->GetMeter(prefix);
-	return std::make_shared<IntHistogram>(
-		m->CreateUInt64Histogram(prefix + "-" + name, helptext, unit), labels);
+	return std::make_shared<IntHistogram>(shared_from_this(), labels);
 	}
 
-IntHistogram::IntHistogram(opentelemetry::nostd::shared_ptr<Handle> hdl,
+IntHistogram::IntHistogram(std::shared_ptr<IntHistogramFamily> family,
                            Span<const LabelView> labels) noexcept
-	: hdl(std::move(hdl)), attributes(labels)
+	: family(std::move(family)), attributes(labels)
 	{
+	}
+
+void IntHistogram::Observe(uint64_t value) noexcept
+	{
+	family->instrument->Record(value, attributes, context);
+	sum += value;
 	}
 
 DblHistogramFamily::DblHistogramFamily(std::string_view prefix, std::string_view name,
@@ -32,18 +39,25 @@ DblHistogramFamily::DblHistogramFamily(std::string_view prefix, std::string_view
                                        bool is_sum)
 	: MetricFamily(prefix, name, labels, helptext, unit, is_sum)
 	{
+	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
+	auto m = p->GetMeter(std::string{prefix});
+	instrument = m->CreateDoubleHistogram(std::string{prefix} + "-" + std::string{name},
+	                                      std::string{helptext}, std::string{unit});
 	}
 
 std::shared_ptr<DblHistogram> DblHistogramFamily::GetOrAdd(Span<const LabelView> labels)
 	{
-	auto p = opentelemetry::metrics::Provider::GetMeterProvider();
-	auto m = p->GetMeter(prefix);
-	return std::make_shared<DblHistogram>(
-		m->CreateDoubleHistogram(prefix + "-" + name, helptext, unit), labels);
+	return std::make_shared<DblHistogram>(shared_from_this(), labels);
 	}
 
-DblHistogram::DblHistogram(opentelemetry::nostd::shared_ptr<Handle> hdl,
+DblHistogram::DblHistogram(std::shared_ptr<DblHistogramFamily> family,
                            Span<const LabelView> labels) noexcept
-	: hdl(std::move(hdl)), attributes(labels)
+	: family(std::move(family)), attributes(labels)
 	{
+	}
+
+void DblHistogram::Observe(double value) noexcept
+	{
+	family->instrument->Record(value, attributes, context);
+	sum += value;
 	}

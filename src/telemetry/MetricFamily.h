@@ -92,6 +92,11 @@ public:
 
 	size_t size() const noexcept override { return attributes.size(); }
 
+	bool operator==(const MetricAttributeIterable& other) const noexcept
+		{
+		return attributes == other.attributes;
+		}
+
 private:
 	std::map<std::string, std::string> attributes;
 	};
