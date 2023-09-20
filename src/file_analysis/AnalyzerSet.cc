@@ -22,6 +22,11 @@ AnalyzerSet::~AnalyzerSet()
 		delete mod;
 		mod_queue.pop();
 		}
+
+	for ( const auto& a : analyzer_map )
+		delete a.second;
+
+	analyzer_map.clear();
 	}
 
 Analyzer* AnalyzerSet::Find(const zeek::Tag& tag, RecordValPtr args)
