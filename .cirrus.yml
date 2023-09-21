@@ -389,7 +389,7 @@ env:
 #     UBSAN_OPTIONS: print_stacktrace=1
 
 tsan_sanitizer_task:
-  experimental: true
+  privileged: true
   container:
     # Just uses a recent/common distro to run memory error/leak checks.
     dockerfile: ci/ubuntu-22.04/Dockerfile
