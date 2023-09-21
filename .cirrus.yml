@@ -14,7 +14,7 @@ config: &CONFIG --build-type=release --disable-broker-tests --prefix=$CIRRUS_WOR
 static_config: &STATIC_CONFIG --build-type=release --disable-broker-tests --enable-static-broker --enable-static-binpac --prefix=$CIRRUS_WORKING_DIR/install --ccache
 asan_sanitizer_config: &ASAN_SANITIZER_CONFIG --build-type=debug --disable-broker-tests --sanitizers=address --enable-fuzzers --enable-coverage --disable-spicy --ccache
 ubsan_sanitizer_config: &UBSAN_SANITIZER_CONFIG --build-type=debug --disable-broker-tests --sanitizers=undefined --enable-fuzzers --disable-spicy --ccache
-tsan_sanitizer_config: &TSAN_SANITIZER_CONFIG --build-type=debug --disable-broker-tests --sanitizers=thread --enable-fuzzers --disable-spicy --ccache
+tsan_sanitizer_config: &TSAN_SANITIZER_CONFIG --build-type=debug --disable-broker-tests --sanitizers=thread --disable-spicy --ccache
 openssl30_config: &OPENSSL30_CONFIG --build-type=release --disable-broker-tests --with-openssl=/opt/openssl --prefix=$CIRRUS_WORKING_DIR/install --ccache
 
 resources_template: &RESOURCES_TEMPLATE
@@ -64,6 +64,7 @@ builds_only_if_template: &BUILDS_ONLY_IF_TEMPLATE
     ( ( $CIRRUS_REPO_NAME == 'zeek' || $CIRRUS_REPO_NAME == 'zeek-security' ) &&
       (
       $CIRRUS_BRANCH == 'master' ||
+      $CIRRUS_BRANCH == 'topic/timw/tsan-build' ||
       $CIRRUS_BRANCH =~ 'release/.*'
       )
     ) )
@@ -390,7 +391,7 @@ ubsan_sanitizer_task:
 tsan_sanitizer_task:
   container:
     # Just uses a recent/common distro to run memory error/leak checks.
-    dockerfile: ci/ubuntu-22.04/Dockerfile
+    dockerfile: ci/ubuntu-23.04/Dockerfile
     << : *SANITIZERS_RESOURCE_TEMPLATE
 
   << : *CI_TEMPLATE
