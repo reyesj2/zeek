@@ -18,74 +18,98 @@ class DblGaugeFamily;
 class IntGaugeFamily;
 class Manager;
 
-/**
- * A handle to a metric that represents an integer value. Gauges are more
- * permissive than counters and also allow decrementing the value.
- */
-class IntGauge
+template <typename Family, typename BaseType> class BaseGauge
 	{
 public:
-	static inline const char* OpaqueName = "IntGaugeMetricVal";
-
-	explicit IntGauge(std::shared_ptr<IntGaugeFamily> family,
-	                  Span<const LabelView> labels) noexcept;
-
-	IntGauge() = delete;
-	IntGauge(const IntGauge&) noexcept = default;
-	IntGauge& operator=(const IntGauge&) noexcept = default;
-
 	/**
 	 * Increments the value by 1.
 	 */
-	void Inc() noexcept;
+	void Inc() noexcept { Inc(1); }
 
 	/**
 	 * Increments the value by @p amount.
 	 */
-	void Inc(int64_t amount) noexcept;
+	void Inc(BaseType amount) noexcept
+		{
+		family->Instrument()->Add(amount, attributes);
+		value += amount;
+		}
 
 	/**
 	 * Increments the value by 1.
 	 * @return The new value.
 	 */
-	int64_t operator++() noexcept;
+	BaseType operator++() noexcept
+		{
+		Inc(1);
+		return value;
+		}
 
 	/**
 	 * Decrements the value by 1.
 	 */
-	void Dec() noexcept;
+	void Dec() noexcept { Dec(1); }
 
 	/**
 	 * Decrements the value by @p amount.
 	 */
-	void Dec(int64_t amount) noexcept;
+	void Dec(int64_t amount) noexcept
+		{
+		family->Instrument()->Add(amount * -1, attributes);
+		value -= amount;
+		}
 
 	/**
 	 * Decrements the value by 1.
 	 * @return The new value.
 	 */
-	int64_t operator--() noexcept;
+	int64_t operator--() noexcept
+		{
+		Dec(1);
+		return value;
+		}
 
-	/**
-	 * @return The current value.
-	 */
-	int64_t Value() const noexcept { return value; }
+	BaseType Value() const noexcept { return value; }
 
 	/**
 	 * @return Whether @c this and @p other refer to the same counter.
 	 */
-	bool IsSameAs(const IntGauge& other) const noexcept
+	bool IsSameAs(const BaseGauge<Family, BaseType>& other) const noexcept
 		{
 		return family == other.family && attributes == other.attributes;
 		}
 
-	bool operator==(const IntGauge& rhs) const noexcept { return IsSameAs(rhs); }
-	bool operator!=(const IntGauge& rhs) const noexcept { return ! IsSameAs(rhs); }
+	bool operator==(const BaseGauge<Family, BaseType>& rhs) const noexcept { return IsSameAs(rhs); }
+	bool operator!=(const BaseGauge<Family, BaseType>& rhs) const noexcept
+		{
+		return ! IsSameAs(rhs);
+		}
 
-private:
-	std::shared_ptr<IntGaugeFamily> family;
+	bool CompareLabels(const Span<const LabelView>& labels) const { return attributes == labels; }
+
+protected:
+	explicit BaseGauge(std::shared_ptr<Family> family, Span<const LabelView> labels) noexcept
+		: family(std::move(family)), attributes(labels)
+		{
+		}
+
+	std::shared_ptr<Family> family;
 	MetricAttributeIterable attributes;
-	int64_t value = 0;
+	BaseType value = 0;
+	};
+
+/**
+ * A handle to a metric that represents an integer value. Gauges are more
+ * permissive than counters and also allow decrementing the value.
+ */
+class IntGauge : public BaseGauge<IntGaugeFamily, int64_t>
+	{
+public:
+	static inline const char* OpaqueName = "IntGaugeMetricVal";
+	explicit IntGauge(std::shared_ptr<IntGaugeFamily> family, Span<const LabelView> labels) noexcept
+		: BaseGauge(std::move(family), labels)
+		{
+		}
 	};
 
 /**
@@ -97,6 +121,7 @@ public:
 	static inline const char* OpaqueName = "IntGaugeMetricFamilyVal";
 
 	using InstanceType = IntGauge;
+	using Handle = opentelemetry::metrics::UpDownCounter<int64_t>;
 
 	IntGaugeFamily(std::string_view prefix, std::string_view name,
 	               Span<const std::string_view> labels, std::string_view helptext,
@@ -119,70 +144,25 @@ public:
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
 
+	opentelemetry::nostd::shared_ptr<Handle>& Instrument() { return instrument; }
+
 private:
-	friend class IntGauge;
-
-	using Handle = opentelemetry::metrics::UpDownCounter<int64_t>;
-
 	opentelemetry::nostd::shared_ptr<Handle> instrument;
+	std::vector<std::shared_ptr<InstanceType>> gauges;
 	};
 
 /**
- * A handle to a metric that represents a floating point value. Gauges are more
+ * A handle to a metric that represents an floating point  value. Gauges are more
  * permissive than counters and also allow decrementing the value.
  */
-class DblGauge
+class DblGauge : public BaseGauge<DblGaugeFamily, double>
 	{
 public:
 	static inline const char* OpaqueName = "DblGaugeMetricVal";
-
-	explicit DblGauge(std::shared_ptr<DblGaugeFamily> family,
-	                  Span<const LabelView> labels) noexcept;
-
-	DblGauge() = delete;
-	DblGauge(const DblGauge&) noexcept = default;
-	DblGauge& operator=(const DblGauge&) noexcept = default;
-
-	/**
-	 * Increments the value by 1.
-	 */
-	void Inc() noexcept;
-
-	/**
-	 * Increments the value by @p amount.
-	 */
-	void Inc(double amount) noexcept;
-
-	/**
-	 * Increments the value by 1.
-	 */
-	void Dec() noexcept;
-
-	/**
-	 * Increments the value by @p amount.
-	 */
-	void Dec(double amount) noexcept;
-
-	/**
-	 * @return The current value.
-	 */
-	double Value() const noexcept { return value; }
-
-	/**
-	 * @return Whether @c this and @p other refer to the same counter.
-	 */
-	bool IsSameAs(const DblGauge& other) const noexcept
+	explicit DblGauge(std::shared_ptr<DblGaugeFamily> family, Span<const LabelView> labels) noexcept
+		: BaseGauge(std::move(family), labels)
 		{
-		return family == other.family && attributes == other.attributes;
 		}
-
-	bool operator==(const DblGauge& rhs) const noexcept { return IsSameAs(rhs); }
-	bool operator!=(const DblGauge& rhs) const noexcept { return ! IsSameAs(rhs); }
-
-private:
-	std::shared_ptr<DblGaugeFamily> family;
-	MetricAttributeIterable attributes;
-	double value = 0;
 	};
 
 /**
@@ -194,6 +174,7 @@ public:
 	static inline const char* OpaqueName = "DblGaugeMetricFamilyVal";
 
 	using InstanceType = DblGauge;
+	using Handle = opentelemetry::metrics::UpDownCounter<double>;
 
 	DblGaugeFamily(std::string_view prefix, std::string_view name,
 	               Span<const std::string_view> labels, std::string_view helptext,
@@ -216,12 +197,11 @@ public:
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
 
+	opentelemetry::nostd::shared_ptr<Handle>& Instrument() { return instrument; }
+
 private:
-	friend class DblGauge;
-
-	using Handle = opentelemetry::metrics::UpDownCounter<double>;
-
 	opentelemetry::nostd::shared_ptr<Handle> instrument;
+	std::vector<std::shared_ptr<InstanceType>> gauges;
 	};
 
 namespace detail

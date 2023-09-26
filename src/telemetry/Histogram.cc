@@ -18,19 +18,18 @@ IntHistogramFamily::IntHistogramFamily(std::string_view prefix, std::string_view
 
 std::shared_ptr<IntHistogram> IntHistogramFamily::GetOrAdd(Span<const LabelView> labels)
 	{
-	return std::make_shared<IntHistogram>(shared_from_this(), labels);
-	}
-
-IntHistogram::IntHistogram(std::shared_ptr<IntHistogramFamily> family,
-                           Span<const LabelView> labels) noexcept
-	: family(std::move(family)), attributes(labels)
+	auto check = [&](const std::shared_ptr<IntHistogram>& histogram)
 	{
-	}
+		return histogram->CompareLabels(labels);
+	};
 
-void IntHistogram::Observe(uint64_t value) noexcept
-	{
-	family->instrument->Record(value, attributes, context);
-	sum += value;
+	if ( auto it = std::find_if(histograms.begin(), histograms.end(), check);
+	     it != histograms.end() )
+		return *it;
+
+	auto histogram = std::make_shared<IntHistogram>(shared_from_this(), labels);
+	histograms.push_back(histogram);
+	return histogram;
 	}
 
 DblHistogramFamily::DblHistogramFamily(std::string_view prefix, std::string_view name,
@@ -47,17 +46,16 @@ DblHistogramFamily::DblHistogramFamily(std::string_view prefix, std::string_view
 
 std::shared_ptr<DblHistogram> DblHistogramFamily::GetOrAdd(Span<const LabelView> labels)
 	{
-	return std::make_shared<DblHistogram>(shared_from_this(), labels);
-	}
-
-DblHistogram::DblHistogram(std::shared_ptr<DblHistogramFamily> family,
-                           Span<const LabelView> labels) noexcept
-	: family(std::move(family)), attributes(labels)
+	auto check = [&](const std::shared_ptr<DblHistogram>& histogram)
 	{
-	}
+		return histogram->CompareLabels(labels);
+	};
 
-void DblHistogram::Observe(double value) noexcept
-	{
-	family->instrument->Record(value, attributes, context);
-	sum += value;
+	if ( auto it = std::find_if(histograms.begin(), histograms.end(), check);
+	     it != histograms.end() )
+		return *it;
+
+	auto histogram = std::make_shared<DblHistogram>(shared_from_this(), labels);
+	histograms.push_back(histogram);
+	return histogram;
 	}

@@ -18,31 +18,21 @@ class DblHistogramFamily;
 class IntHistogramFamily;
 class Manager;
 
-/**
- * A handle to a metric that represents an aggregable distribution of observed
- * measurements with integer precision. Sorts individual measurements into
- * configurable buckets.
- */
-class IntHistogram
+template <typename Family, typename BaseType> class BaseHistogram
 	{
 public:
-	static inline const char* OpaqueName = "IntHistogramMetricVal";
-
-	explicit IntHistogram(std::shared_ptr<IntHistogramFamily> family,
-	                      Span<const LabelView> labels) noexcept;
-
-	IntHistogram() = delete;
-	IntHistogram(const IntHistogram&) noexcept = default;
-	IntHistogram& operator=(const IntHistogram&) noexcept = default;
-
 	/**
 	 * Increments all buckets with an upper bound less than or equal to @p value
 	 * by one and adds @p value to the total sum of all observed values.
 	 */
-	void Observe(uint64_t value) noexcept;
+	void Observe(BaseType value) noexcept
+		{
+		family->Instrument()->Record(value, attributes, context);
+		sum += value;
+		}
 
 	/// @return The sum of all observed values.
-	uint64_t Sum() const noexcept { return sum; }
+	BaseType Sum() const noexcept { return sum; }
 
 	// TODO: the opentelemetry API doesn't have direct access to the bucket information
 	// in the histogram instrument.
@@ -52,12 +42,12 @@ public:
 
 	// /// @return The number of observations in the bucket at @p index.
 	// /// @pre index < NumBuckets()
-	// uint64_t CountAt(size_t index) const noexcept { return broker::telemetry::count_at(hdl,
+	// BaseType CountAt(size_t index) const noexcept { return broker::telemetry::count_at(hdl,
 	// index); }
 
 	// /// @return The upper bound of the bucket at @p index.
 	// /// @pre index < NumBuckets()
-	// uint64_t UpperBoundAt(size_t index) const noexcept
+	// BaseType UpperBoundAt(size_t index) const noexcept
 	//		{
 	//		return broker::telemetry::upper_bound_at(hdl, index);
 	//		}
@@ -65,19 +55,47 @@ public:
 	/**
 	 * @return Whether @c this and @p other refer to the same histogram.
 	 */
-	bool IsSameAs(const IntHistogram& other) const noexcept
+	bool IsSameAs(const BaseHistogram& other) const noexcept
 		{
 		return family == other.family && attributes == other.attributes;
 		}
 
-	bool operator==(const IntHistogram& other) const noexcept { return IsSameAs(other); }
-	bool operator!=(const IntHistogram& other) const noexcept { return ! IsSameAs(other); }
+	bool operator==(const BaseHistogram& other) const noexcept { return IsSameAs(other); }
+	bool operator!=(const BaseHistogram& other) const noexcept { return ! IsSameAs(other); }
 
-private:
-	std::shared_ptr<IntHistogramFamily> family;
+	bool CompareLabels(const Span<const LabelView>& labels) const { return attributes == labels; }
+
+protected:
+	explicit BaseHistogram(std::shared_ptr<Family> family, Span<const LabelView> labels) noexcept
+		: family(std::move(family)), attributes(labels)
+		{
+		}
+
+	std::shared_ptr<Family> family;
 	MetricAttributeIterable attributes;
 	opentelemetry::context::Context context;
-	uint64_t sum = 0;
+	BaseType sum = 0;
+	};
+
+/**
+ * A handle to a metric that represents an aggregable distribution of observed
+ * measurements with integer precision. Sorts individual measurements into
+ * configurable buckets.
+ */
+class IntHistogram : public BaseHistogram<IntHistogramFamily, uint64_t>
+	{
+public:
+	static inline const char* OpaqueName = "IntHistogramMetricVal";
+
+	explicit IntHistogram(std::shared_ptr<IntHistogramFamily> family,
+	                      Span<const LabelView> labels) noexcept
+		: BaseHistogram(std::move(family), labels)
+		{
+		}
+
+	IntHistogram() = delete;
+	IntHistogram(const IntHistogram&) noexcept = default;
+	IntHistogram& operator=(const IntHistogram&) noexcept = default;
 	};
 
 /**
@@ -90,6 +108,7 @@ public:
 	static inline const char* OpaqueName = "IntHistogramMetricFamilyVal";
 
 	using InstanceType = IntHistogram;
+	using Handle = opentelemetry::metrics::Histogram<uint64_t>;
 
 	IntHistogramFamily(std::string_view prefix, std::string_view name,
 	                   Span<const std::string_view> labels, std::string_view helptext,
@@ -112,74 +131,32 @@ public:
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
 
+	opentelemetry::nostd::shared_ptr<Handle>& Instrument() { return instrument; }
+
 private:
-	friend class IntHistogram;
-
-	using Handle = opentelemetry::metrics::Histogram<uint64_t>;
-
 	opentelemetry::nostd::shared_ptr<Handle> instrument;
+	std::vector<std::shared_ptr<InstanceType>> histograms;
 	};
 
 /**
  * A handle to a metric that represents an aggregable distribution of observed
- * measurements with floating point precision. Sorts individual measurements
- * into configurable buckets.
+ * measurements with integer precision. Sorts individual measurements into
+ * configurable buckets.
  */
-class DblHistogram
+class DblHistogram : public BaseHistogram<DblHistogramFamily, double>
 	{
 public:
 	static inline const char* OpaqueName = "DblHistogramMetricVal";
 
 	explicit DblHistogram(std::shared_ptr<DblHistogramFamily> family,
-	                      Span<const LabelView> labels) noexcept;
+	                      Span<const LabelView> labels) noexcept
+		: BaseHistogram(std::move(family), labels)
+		{
+		}
 
 	DblHistogram() = delete;
 	DblHistogram(const DblHistogram&) noexcept = default;
 	DblHistogram& operator=(const DblHistogram&) noexcept = default;
-
-	/**
-	 * Increments all buckets with an upper bound less than or equal to @p value
-	 * by one and adds @p value to the total sum of all observed values.
-	 */
-	void Observe(double value) noexcept;
-
-	/// @return The sum of all observed values.
-	double Sum() const noexcept { return sum; }
-
-	// TODO: the opentelemetry API doesn't have direct access to the bucket information
-	// in the histogram instrument.
-
-	// /// @return The number of buckets, including the implicit "infinite" bucket.
-	// size_t NumBuckets() const noexcept { return broker::telemetry::num_buckets(hdl); }
-
-	// /// @return The number of observations in the bucket at @p index.
-	// /// @pre index < NumBuckets()
-	// int64_t CountAt(size_t index) const noexcept { return broker::telemetry::count_at(hdl,
-	// index); }
-
-	// /// @return The upper bound of the bucket at @p index.
-	// /// @pre index < NumBuckets()
-	// double UpperBoundAt(size_t index) const noexcept
-	//	{
-	//	return broker::telemetry::upper_bound_at(hdl, index);
-	//	}
-
-	/**
-	 * @return Whether @c this and @p other refer to the same histogram.
-	 */
-	bool IsSameAs(const DblHistogram& other) const noexcept
-		{
-		return family == other.family && attributes == other.attributes;
-		}
-
-	bool operator==(const DblHistogram& other) const noexcept { return IsSameAs(other); }
-	bool operator!=(const DblHistogram& other) const noexcept { return ! IsSameAs(other); }
-
-private:
-	std::shared_ptr<DblHistogramFamily> family;
-	MetricAttributeIterable attributes;
-	opentelemetry::context::Context context;
-	double sum = 0;
 	};
 
 /**
@@ -192,6 +169,7 @@ public:
 	static inline const char* OpaqueName = "DblHistogramMetricFamilyVal";
 
 	using InstanceType = DblHistogram;
+	using Handle = opentelemetry::metrics::Histogram<double>;
 
 	DblHistogramFamily(std::string_view prefix, std::string_view name,
 	                   Span<const std::string_view> labels, std::string_view helptext,
@@ -214,12 +192,11 @@ public:
 		return GetOrAdd(Span{labels.begin(), labels.size()});
 		}
 
+	opentelemetry::nostd::shared_ptr<Handle>& Instrument() { return instrument; }
+
 private:
-	friend class DblHistogram;
-
-	using Handle = opentelemetry::metrics::Histogram<double>;
-
 	opentelemetry::nostd::shared_ptr<Handle> instrument;
+	std::vector<std::shared_ptr<InstanceType>> histograms;
 	};
 
 namespace detail

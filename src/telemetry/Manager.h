@@ -196,15 +196,30 @@ public:
 	                   Span<const std::string_view> labels, std::string_view helptext,
 	                   std::string_view unit = "1", bool is_sum = false)
 		{
+		auto fam = LookupFamily(prefix, name);
+
 		if constexpr ( std::is_same<ValueType, int64_t>::value )
 			{
-			return std::make_shared<IntCounterFamily>(prefix, name, labels, helptext, unit, is_sum);
+			if ( fam )
+				return std::static_pointer_cast<IntCounterFamily>(fam);
+
+			auto int_fam = std::make_shared<IntCounterFamily>(prefix, name, labels, helptext, unit,
+			                                                  is_sum);
+			families.push_back(int_fam);
+			return int_fam;
 			}
 		else
 			{
 			static_assert(std::is_same<ValueType, double>::value,
 			              "metrics only support int64_t and double values");
-			return std::make_shared<DblCounterFamily>(prefix, name, labels, helptext, unit, is_sum);
+
+			if ( fam )
+				return std::static_pointer_cast<DblCounterFamily>(fam);
+
+			auto dbl_fam = std::make_shared<DblCounterFamily>(prefix, name, labels, helptext, unit,
+			                                                  is_sum);
+			families.push_back(dbl_fam);
+			return dbl_fam;
 			}
 		}
 
@@ -269,15 +284,29 @@ public:
 	                 Span<const std::string_view> labels, std::string_view helptext,
 	                 std::string_view unit = "1", bool is_sum = false)
 		{
+		auto fam = LookupFamily(prefix, name);
+
 		if constexpr ( std::is_same<ValueType, int64_t>::value )
 			{
-			return std::make_shared<IntGaugeFamily>(prefix, name, labels, helptext, unit, is_sum);
+			if ( fam )
+				return std::static_pointer_cast<IntGaugeFamily>(fam);
+
+			auto int_fam = std::make_shared<IntGaugeFamily>(prefix, name, labels, helptext, unit,
+			                                                is_sum);
+			families.push_back(int_fam);
+			return int_fam;
 			}
 		else
 			{
 			static_assert(std::is_same<ValueType, double>::value,
 			              "metrics only support int64_t and double values");
-			return std::make_shared<DblGaugeFamily>(prefix, name, labels, helptext, unit, is_sum);
+			if ( fam )
+				return std::static_pointer_cast<DblGaugeFamily>(fam);
+
+			auto dbl_fam = std::make_shared<DblGaugeFamily>(prefix, name, labels, helptext, unit,
+			                                                is_sum);
+			families.push_back(dbl_fam);
+			return dbl_fam;
 			}
 		}
 
@@ -364,19 +393,31 @@ public:
 	                     ConstSpan<ValueType> default_upper_bounds, std::string_view helptext,
 	                     std::string_view unit = "1", bool is_sum = false)
 		{
+		auto fam = LookupFamily(prefix, name);
+
 		if constexpr ( std::is_same<ValueType, int64_t>::value )
 			{
 			// TODO: pass upper bounds
-			return std::make_shared<IntHistogramFamily>(prefix, name, labels, helptext, unit,
-			                                            is_sum);
+			if ( fam )
+				return std::static_pointer_cast<IntHistogramFamily>(fam);
+
+			auto int_fam = std::make_shared<IntHistogramFamily>(prefix, name, labels, helptext,
+			                                                    unit, is_sum);
+			families.push_back(int_fam);
+			return int_fam;
 			}
 		else
 			{
 			static_assert(std::is_same<ValueType, double>::value,
 			              "metrics only support int64_t and double values");
 			// TODO: pass upper bounds
-			return std::make_shared<DblHistogramFamily>(prefix, name, labels, helptext, unit,
-			                                            is_sum);
+			if ( fam )
+				return std::static_pointer_cast<DblHistogramFamily>(fam);
+
+			auto dbl_fam = std::make_shared<DblHistogramFamily>(prefix, name, labels, helptext,
+			                                                    unit, is_sum);
+			families.push_back(dbl_fam);
+			return dbl_fam;
 			}
 		}
 
@@ -466,6 +507,9 @@ protected:
 	IntrusivePtr<broker::telemetry::metric_registry_impl> pimpl;
 
 private:
+	std::shared_ptr<MetricFamily> LookupFamily(std::string_view prefix,
+	                                           std::string_view name) const;
+
 	// Caching of metric_family_hdl instances to their Zeek record representation.
 	std::unordered_map<const broker::telemetry::metric_family_hdl*, zeek::RecordValPtr>
 		metric_opts_cache;
@@ -473,6 +517,8 @@ private:
 	std::string metrics_name;
 	std::string metrics_version;
 	std::string metrics_schema;
+
+	std::vector<std::shared_ptr<MetricFamily>> families;
 	};
 
 	} // namespace zeek::telemetry
