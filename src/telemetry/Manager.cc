@@ -770,7 +770,7 @@ SCENARIO("telemetry managers provide access to histogram families")
 				auto hg = family->GetOrAdd({{"protocol", "tst"}});
 				CHECK_EQ(hg->Sum(), 0.0);
 					{
-					Timer observer{*hg};
+					Timer observer{hg};
 					std::this_thread::sleep_for(1ms);
 					}
 				CHECK_NE(hg->Sum(), 0.0);
