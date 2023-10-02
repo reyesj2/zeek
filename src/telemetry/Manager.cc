@@ -96,19 +96,27 @@ void Manager::InitPostScript()
 	auto mp = metrics_api::Provider::GetMeterProvider();
 	auto* p = static_cast<metrics_sdk::MeterProvider*>(mp.get());
 
-	opentelemetry::exporter::metrics::PrometheusExporterOptions exporter_options;
-	exporter_options.url = "localhost:4040";
-	auto exporter = exportermetrics::PrometheusExporterFactory::Create(exporter_options);
-	p->AddMetricReader(std::move(exporter));
+	if ( auto env = getenv("BROKER_METRICS_PORT") )
+		{
+		opentelemetry::exporter::metrics::PrometheusExporterOptions exporter_options;
+		exporter_options.url = util::fmt("localhost:%s", env);
+		auto exporter = exportermetrics::PrometheusExporterFactory::Create(exporter_options);
+		p->AddMetricReader(std::move(exporter));
+		}
 
-	auto os_exporter = exportermetrics::OStreamMetricExporterFactory::Create();
-	auto im_exporter = exportermetrics::InMemoryMetricExporterFactory::Create();
-	metrics_sdk::PeriodicExportingMetricReaderOptions options;
-	options.export_interval_millis = std::chrono::milliseconds(1000);
-	options.export_timeout_millis = std::chrono::milliseconds(500);
-	auto reader = metrics_sdk::PeriodicExportingMetricReaderFactory::Create(std::move(os_exporter),
-	                                                                        options);
-	p->AddMetricReader(std::move(reader));
+	if ( auto env = getenv("OTEL_DEBUG") )
+		{
+		auto os_exporter = exportermetrics::OStreamMetricExporterFactory::Create();
+		auto im_exporter = exportermetrics::InMemoryMetricExporterFactory::Create();
+
+		metrics_sdk::PeriodicExportingMetricReaderOptions options;
+		options.export_interval_millis = std::chrono::milliseconds(1000);
+		options.export_timeout_millis = std::chrono::milliseconds(500);
+
+		auto reader = metrics_sdk::PeriodicExportingMetricReaderFactory::Create(
+			std::move(os_exporter), options);
+		p->AddMetricReader(std::move(reader));
+		}
 
 	std::string counter_name = metrics_name + "_counter";
 	auto instrument_selector = metrics_sdk::InstrumentSelectorFactory::Create(
