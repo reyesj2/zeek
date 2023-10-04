@@ -15,13 +15,7 @@
 #include "zeek/telemetry/Gauge.h"
 #include "zeek/telemetry/Histogram.h"
 
-#include "broker/telemetry/fwd.hh"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
-
-namespace broker
-	{
-class endpoint;
-	}
 
 namespace zeek
 	{
@@ -58,112 +52,6 @@ public:
 	 * initialization after any scripts are processed.
 	 */
 	void InitPostScript();
-
-	/**
-	 * Supported metric types.
-	 */
-	enum class MetricType
-		{
-		Counter,
-		Gauge,
-		Histogram
-		};
-
-	/**
-	 * Captures information about counter and gauge metrics.
-	 */
-	struct CollectedValueMetric
-		{
-		/**
-		 * Constructor.
-		 * @param metric_type The type of this metric.
-		 * @param family Broker layer family handle for this metric.
-		 * @param label_values The string values for each of the metric's labels.
-		 * @param value The metric's current value.
-		 */
-		CollectedValueMetric(MetricType metric_type,
-		                     const broker::telemetry::metric_family_hdl* family,
-		                     std::vector<std::string_view> label_values,
-		                     std::variant<double, int64_t> value)
-			: metric_type(metric_type), family(family), label_values(std::move(label_values)),
-			  value(value)
-			{
-			}
-
-		/**
-		 * @return A script layer Telemetry::Metric record for this metric.
-		 */
-		zeek::RecordValPtr AsMetricRecord() const;
-
-		enum MetricType metric_type;
-		const broker::telemetry::metric_family_hdl* family;
-		std::vector<std::string_view> label_values;
-		std::variant<double, int64_t> value;
-		};
-
-	/**
-	 * Captures information about histogram metrics.
-	 */
-	struct CollectedHistogramMetric
-		{
-		/**
-		 * Helper struct representing a single bucket of a histogram.
-		 * @tparam T The data type used by the histogram (double or int64_t).
-		 */
-		template <class T> struct Bucket
-			{
-			Bucket(T count, T upper_bound) : count(count), upper_bound(upper_bound) { }
-
-			T count;
-			T upper_bound;
-			};
-
-		/**
-		 * Helper struct representing a histogram as sum and buckets.
-		 * @tparam T The data type used by the histogram (double or int64_t).
-		 */
-		template <class T> struct HistogramData
-			{
-			T sum;
-			std::vector<Bucket<T>> buckets;
-			};
-
-		using DblHistogramData = HistogramData<double>;
-		using IntHistogramData = HistogramData<int64_t>;
-
-		/**
-		 * Constructor.
-		 * @param family Broker layer family handle for this metric.
-		 * @param label_values The string values for each of the metric's labels.
-		 * @param histogram The histogram's data (sum and individual buckets).
-		 */
-		CollectedHistogramMetric(const broker::telemetry::metric_family_hdl* family,
-		                         std::vector<std::string_view> label_values,
-		                         std::variant<DblHistogramData, IntHistogramData> histogram)
-
-			: family(family), label_values(std::move(label_values)), histogram(std::move(histogram))
-			{
-			}
-
-		const broker::telemetry::metric_family_hdl* family;
-		std::vector<std::string_view> label_values;
-		std::variant<DblHistogramData, IntHistogramData> histogram;
-
-		/**
-		 * @return A script layer Telemetry::HistogramMetric record for this histogram.
-		 */
-		zeek::RecordValPtr AsHistogramMetricRecord() const;
-		};
-
-	/**
-	 * @return A script layer Telemetry::MetricOpts record for the given metric family.
-	 * @param metric_typ The type of metric.
-	 * @param family Broker layer family handle for the family.
-	 * @tparam T The underlying data type (double or int64_t)
-	 */
-	template <typename T>
-	zeek::RecordValPtr GetMetricOptsRecord(MetricType metric_type,
-	                                       const broker::telemetry::metric_family_hdl* family);
 
 	/**
 	 * @return All counter and gauge metrics and their values matching prefix and name.
@@ -502,17 +390,9 @@ protected:
 			}
 		}
 
-	broker::telemetry::metric_registry_impl* Ptr() { return pimpl.get(); }
-
-	IntrusivePtr<broker::telemetry::metric_registry_impl> pimpl;
-
 private:
 	std::shared_ptr<MetricFamily> LookupFamily(std::string_view prefix,
 	                                           std::string_view name) const;
-
-	// Caching of metric_family_hdl instances to their Zeek record representation.
-	std::unordered_map<const broker::telemetry::metric_family_hdl*, zeek::RecordValPtr>
-		metric_opts_cache;
 
 	std::string metrics_name;
 	std::string metrics_version;

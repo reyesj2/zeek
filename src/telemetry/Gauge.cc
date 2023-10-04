@@ -30,6 +30,23 @@ std::shared_ptr<IntGauge> IntGaugeFamily::GetOrAdd(Span<const LabelView> labels)
 	return gauge;
 	}
 
+/**
+ * @return All gauge and gauge metrics and their values matching prefix and name.
+ * @param prefix The prefix pattern to use for filtering. Supports globbing.
+ * @param name The name pattern to use for filtering. Supports globbing.
+ */
+std::vector<CollectedValueMetric> IntGaugeFamily::CollectMetrics() const
+	{
+	std::vector<CollectedValueMetric> result;
+	result.reserve(gauges.size());
+
+	for ( const auto& cntr : gauges )
+		result.emplace_back(BifEnum::Telemetry::MetricType::INT_GAUGE, shared_from_this(),
+		                    cntr->Labels(), cntr->Value());
+
+	return result;
+	}
+
 DblGaugeFamily::DblGaugeFamily(std::string_view prefix, std::string_view name,
                                Span<const std::string_view> labels, std::string_view helptext,
                                std::string_view unit, bool is_sum)
@@ -54,4 +71,21 @@ std::shared_ptr<DblGauge> DblGaugeFamily::GetOrAdd(Span<const LabelView> labels)
 	auto gauge = std::make_shared<DblGauge>(shared_from_this(), labels);
 	gauges.push_back(gauge);
 	return gauge;
+	}
+
+/**
+ * @return All counter and gauge metrics and their values matching prefix and name.
+ * @param prefix The prefix pattern to use for filtering. Supports globbing.
+ * @param name The name pattern to use for filtering. Supports globbing.
+ */
+std::vector<CollectedValueMetric> DblGaugeFamily::CollectMetrics() const
+	{
+	std::vector<CollectedValueMetric> result;
+	result.reserve(gauges.size());
+
+	for ( const auto& cntr : gauges )
+		result.emplace_back(BifEnum::Telemetry::MetricType::DOUBLE_GAUGE, shared_from_this(),
+		                    cntr->Labels(), cntr->Value());
+
+	return result;
 	}

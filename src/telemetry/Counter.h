@@ -8,6 +8,7 @@
 
 #include "zeek/Span.h"
 #include "zeek/telemetry/MetricFamily.h"
+#include "zeek/telemetry/telemetry.bif.h"
 
 #include "opentelemetry/sdk/metrics/sync_instruments.h"
 
@@ -70,6 +71,7 @@ public:
 		}
 
 	bool CompareLabels(const Span<const LabelView>& labels) const { return attributes == labels; }
+	std::vector<std::string> Labels() const { return attributes.Labels(); }
 
 protected:
 	explicit BaseCounter(std::shared_ptr<Family> family, Span<const LabelView> labels) noexcept
@@ -85,7 +87,7 @@ protected:
 /**
  * A handle to a metric that represents an integer value that can only go up.
  */
-class IntCounter : public BaseCounter<IntCounterFamily, uint64_t>
+class IntCounter : public BaseCounter<IntCounterFamily, int64_t>
 	{
 public:
 	static inline const char* OpaqueName = "IntCounterMetricVal";
@@ -129,6 +131,17 @@ public:
 		}
 
 	opentelemetry::nostd::shared_ptr<Handle>& Instrument() { return instrument; }
+	zeek_int_t MetricType() const noexcept override
+		{
+		return BifEnum::Telemetry::MetricType::INT_COUNTER;
+		}
+
+	/**
+	 * @return All counter and gauge metrics and their values matching prefix and name.
+	 * @param prefix The prefix pattern to use for filtering. Supports globbing.
+	 * @param name The name pattern to use for filtering. Supports globbing.
+	 */
+	std::vector<CollectedValueMetric> CollectMetrics() const override;
 
 private:
 	friend class IntCounter;
@@ -184,6 +197,17 @@ public:
 		}
 
 	opentelemetry::nostd::shared_ptr<Handle>& Instrument() { return instrument; }
+	zeek_int_t MetricType() const noexcept override
+		{
+		return BifEnum::Telemetry::MetricType::DOUBLE_COUNTER;
+		}
+
+	/**
+	 * @return All counter and gauge metrics and their values matching prefix and name.
+	 * @param prefix The prefix pattern to use for filtering. Supports globbing.
+	 * @param name The name pattern to use for filtering. Supports globbing.
+	 */
+	std::vector<CollectedValueMetric> CollectMetrics() const override;
 
 private:
 	opentelemetry::nostd::shared_ptr<Handle> instrument;
