@@ -13,6 +13,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "zeek/Broker/Data.h"
 #include "zeek/IntrusivePtr.h"
 #include "zeek/iosource/IOSource.h"
 #include "zeek/logging/WriterBackend.h"
@@ -188,6 +189,18 @@ public:
 	 */
 	bool PublishEvent(std::string topic, std::string name, broker::vector args,
 	                  double ts = run_state::network_time);
+
+	/**
+	 * @copydoc PublishEvent(std::string, std::string, broker::vector, double)
+	 */
+	bool PublishEvent(std::string topic, std::string name, BrokerData args,
+	                  double ts = run_state::network_time)
+		{
+		if ( ! args.AsView().IsList() )
+			return false;
+		return PublishEvent(std::move(topic), std::move(name),
+		                    std::move(broker::get<broker::vector>(args.value_)), ts);
+		}
 
 	/**
 	 * Send an event to any interested peers.
