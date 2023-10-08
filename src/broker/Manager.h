@@ -13,8 +13,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "zeek/Broker/Data.h"
 #include "zeek/IntrusivePtr.h"
+#include "zeek/broker/Data.h"
 #include "zeek/iosource/IOSource.h"
 #include "zeek/logging/WriterBackend.h"
 
