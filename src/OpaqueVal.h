@@ -97,8 +97,8 @@ private:
 #define DECLARE_OPAQUE_VALUE(T)                                                                    \
 	friend class zeek::OpaqueMgr::Register<T>;                                                     \
 	friend zeek::IntrusivePtr<T> zeek::make_intrusive<T>();                                        \
-	std::optional<BrokerData> DoSerialize() const override;                                   \
-	bool DoUnserialize(BrokerDataView data) override;                                         \
+	std::optional<BrokerData> DoSerialize() const override;                                        \
+	bool DoUnserialize(BrokerDataView data) override;                                              \
 	const char* OpaqueName() const override { return #T; }                                         \
 	static zeek::OpaqueValPtr OpaqueInstantiate() { return zeek::make_intrusive<T>(); }
 

@@ -416,15 +416,15 @@ std::optional<BrokerData> TopkVal::DoSerialize() const
 		builder.Add(std::move(*t));
 		}
 	else
-	  builder.AddNil();
+		builder.AddNil();
 
 	uint64_t i = 0;
 	for ( const auto* b : buckets )
-	  {
-	  builder.AddCount(b->elements.size());
-	  builder.AddCount(b->count);
+		{
+		builder.AddCount(b->elements.size());
+		builder.AddCount(b->count);
 
-	  for ( const auto* element : b->elements )
+		for ( const auto* element : b->elements )
 			{
 			builder.AddCount(element->epsilon);
 			BrokerData val;

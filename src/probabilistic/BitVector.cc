@@ -521,13 +521,13 @@ std::unique_ptr<BitVector> BitVector::Unserialize(BrokerDataView data)
 
 	auto v = data.ToList();
 	if ( v.Size() < 2 || ! v[0].IsCount() || ! v[1].IsCount() )
-    return nullptr;
+		return nullptr;
 
 	auto num_bits = v[0].ToCount();
 	auto size = v[1].ToCount();
 
 	if ( v.Size() != 2 + size )
-    return nullptr;
+		return nullptr;
 
 	auto bv = std::make_unique<BitVector>();
 	bv->num_bits = num_bits;
@@ -536,7 +536,7 @@ std::unique_ptr<BitVector> BitVector::Unserialize(BrokerDataView data)
 		{
 		auto x = v[2 + i];
 		if ( ! x.IsCount() )
-      return nullptr;
+			return nullptr;
 
 		bv->bits.push_back(x.ToCount());
 		}

@@ -1255,7 +1255,8 @@ void Manager::ProcessStoreEventInsertUpdate(const TableValPtr& table, const std:
 	if ( its.size() == 1 )
 		zeek_key = detail::data_to_val(key_copy, its[0].get());
 	else
-		zeek_key = detail::data_to_val(key_copy, table->GetType()->AsTableType()->GetIndices().get());
+		zeek_key = detail::data_to_val(key_copy,
+		                               table->GetType()->AsTableType()->GetIndices().get());
 
 	if ( ! zeek_key )
 		{
@@ -1507,9 +1508,9 @@ bool Manager::ProcessLogCreate(broker::zeek::LogCreate lc)
 		return false;
 		}
 
-  auto wrapped_writer_id = broker::data{lc.writer_id()};
-  auto writer_id = detail::data_to_val(wrapped_writer_id, writer_id_type);
-  if ( ! writer_id )
+	auto wrapped_writer_id = broker::data{lc.writer_id()};
+	auto writer_id = detail::data_to_val(wrapped_writer_id, writer_id_type);
+	if ( ! writer_id )
 		{
 		reporter->Warning("failed to unpack remote log writer id");
 		return false;

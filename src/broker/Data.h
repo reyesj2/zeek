@@ -324,18 +324,12 @@ public:
 	/**
 	 * Checks whether the value represents the `nil` value.
 	 */
-	[[nodiscard]] bool IsNil() const noexcept
-		{
-		return broker::is<broker::none>(*value_);
-		}
+	[[nodiscard]] bool IsNil() const noexcept { return broker::is<broker::none>(*value_); }
 
 	/**
 	 * Checks whether the value is a Boolean.
 	 */
-	[[nodiscard]] bool IsBool() const noexcept
-		{
-		return broker::is<bool>(*value_);
-		}
+	[[nodiscard]] bool IsBool() const noexcept { return broker::is<bool>(*value_); }
 
 	/**
 	 * Converts the value to a Boolean.
@@ -352,10 +346,7 @@ public:
 	/**
 	 * Checks whether the value is a string.
 	 */
-	[[nodiscard]] bool IsString() const noexcept
-		{
-		return broker::is<std::string>(*value_);
-		}
+	[[nodiscard]] bool IsString() const noexcept { return broker::is<std::string>(*value_); }
 
 	/**
 	 * Converts the value to a string.
@@ -372,10 +363,7 @@ public:
 	/**
 	 * Checks whether the value is an integer.
 	 */
-	[[nodiscard]] bool IsInteger() const noexcept
-		{
-		return broker::is<broker::integer>(*value_);
-		}
+	[[nodiscard]] bool IsInteger() const noexcept { return broker::is<broker::integer>(*value_); }
 
 	/**
 	 * Converts the value to an integer.
@@ -392,10 +380,7 @@ public:
 	/**
 	 * Checks whether the value is a count.
 	 */
-	[[nodiscard]] bool IsCount() const noexcept
-		{
-		return broker::is<broker::count>(*value_);
-		}
+	[[nodiscard]] bool IsCount() const noexcept { return broker::is<broker::count>(*value_); }
 
 	/**
 	 * Converts the value to a count.
@@ -412,10 +397,7 @@ public:
 	/**
 	 * Checks whether the value is a real (double).
 	 */
-	[[nodiscard]] bool IsReal() const noexcept
-		{
-		return broker::is<broker::real>(*value_);
-		}
+	[[nodiscard]] bool IsReal() const noexcept { return broker::is<broker::real>(*value_); }
 
 	/**
 	 * Converts the value to a real (double).
@@ -432,10 +414,7 @@ public:
 	/**
 	 * Checks whether the value is a list.
 	 */
-	[[nodiscard]] bool IsList() const noexcept
-		{
-		return broker::is<broker::vector>(*value_);
-		}
+	[[nodiscard]] bool IsList() const noexcept { return broker::is<broker::vector>(*value_); }
 
 	/**
 	 * Converts the value to a list.
@@ -522,18 +501,12 @@ public:
 	/**
 	 * Returns the number of elements in the list.
 	 */
-	[[nodiscard]] size_t Size() const noexcept
-		{
-		return values_->size();
-		}
+	[[nodiscard]] size_t Size() const noexcept { return values_->size(); }
 
 	/**
 	 * Checks whether the list is empty.
 	 */
-	[[nodiscard]] size_t IsEmpty() const noexcept
-		{
-		return values_->empty();
-		}
+	[[nodiscard]] size_t IsEmpty() const noexcept { return values_->empty(); }
 
 private:
 	broker::vector* values_;
@@ -562,10 +535,7 @@ public:
 		// Note: we use enable_if here to avoid nasty implicit conversions of broker::data.
 		}
 
-	BrokerDataView AsView() noexcept
-		{
-		return BrokerDataView{std::addressof(value_)};
-		}
+	BrokerDataView AsView() noexcept { return BrokerDataView{std::addressof(value_)}; }
 
 	/**
 	 * Attempts to parse a Zeek value into a Broker value. On success, the Broker
@@ -577,10 +547,7 @@ public:
 	/**
 	 * @copydoc Convert(const Val*)
 	 */
-	[[nodiscard]] bool Convert(const ValPtr& value)
-		{
-		return Convert(value.get());
-		}
+	[[nodiscard]] bool Convert(const ValPtr& value) { return Convert(value.get()); }
 
 	/**
 	 * Converts this value to a Zeek record.
@@ -612,10 +579,7 @@ public:
 	/**
 	 * Renders the value as a string.
 	 */
-	friend std::string to_string(const BrokerData& data)
-		{
-		return broker::to_string(data.value_);
-		}
+	friend std::string to_string(const BrokerData& data) { return broker::to_string(data.value_); }
 
 private:
 	broker::data value_;
@@ -632,10 +596,7 @@ public:
 	/**
 	 * Reserves space for up to `n` elements.
 	 */
-	void Reserve(size_t n)
-		{
-		values_.reserve(n);
-		}
+	void Reserve(size_t n) { values_.reserve(n); }
 
 	/**
 	 * Tries to convert a Zeek value into a Broker value and adds it to the list on success.
@@ -645,10 +606,7 @@ public:
 	/**
 	 * @copydoc Add(const Val*)
 	 */
-	[[nodiscard]] bool Add(const ValPtr& value)
-		{
-		return Add(value.get());
-		}
+	[[nodiscard]] bool Add(const ValPtr& value) { return Add(value.get()); }
 
 	/**
 	 * Adds `value` as a Broker `count` to the list, automatically converting it if necessary.
@@ -675,76 +633,49 @@ public:
 	/**
 	 * Appends `value` to the end of the list.
 	 */
-	void Add(uint64_t value)
-		{
-		values_.emplace_back(static_cast<broker::count>(value));
-		}
+	void Add(uint64_t value) { values_.emplace_back(static_cast<broker::count>(value)); }
 
 	/**
 	 * Appends `value` to the end of the list.
 	 */
-	void Add(int64_t value)
-		{
-		values_.emplace_back(static_cast<broker::integer>(value));
-		}
+	void Add(int64_t value) { values_.emplace_back(static_cast<broker::integer>(value)); }
 
 	/**
 	 * Appends `value` to the end of the list.
 	 */
-	void Add(double value)
-		{
-		values_.emplace_back(value);
-		}
+	void Add(double value) { values_.emplace_back(value); }
 
 	/**
 	 * Appends `value` to the end of the list.
 	 */
-	void Add(bool value)
-		{
-		values_.emplace_back(value);
-		}
+	void Add(bool value) { values_.emplace_back(value); }
 
 	/**
 	 * Appends `value` to the end of the list.
 	 */
-	void Add(std::string value)
-		{
-		values_.emplace_back(std::move(value));
-		}
+	void Add(std::string value) { values_.emplace_back(std::move(value)); }
 
 	/**
 	 * Appends a string to the end of the list.
 	 * @param cstr The characters to append.
 	 * @param len The number of characters to append.
 	 */
-	void AddString(const char* cstr, size_t len)
-		{
-		values_.emplace_back(std::string{cstr, len});
-		}
+	void AddString(const char* cstr, size_t len) { values_.emplace_back(std::string{cstr, len}); }
 
 	/**
 	 * Appends `value` to the end of the list.
 	 */
-	void Add(BrokerData value)
-		{
-		values_.emplace_back(std::move(value.value_));
-		}
+	void Add(BrokerData value) { values_.emplace_back(std::move(value.value_)); }
 
 	/**
 	 * Appends all elements from `builder` to the end of the list as a single element.
 	 */
-	void Add(BrokerListBuilder&& builder)
-		{
-		values_.emplace_back(std::move(builder.values_));
-		}
+	void Add(BrokerListBuilder&& builder) { values_.emplace_back(std::move(builder.values_)); }
 
 	/**
 	 * Appends the `nil` value to the end of the list.
 	 */
-	void AddNil()
-		{
-		values_.emplace_back();
-		}
+	void AddNil() { values_.emplace_back(); }
 
 	/**
 	 * Adds a list of values to the list (as a single element).
@@ -759,10 +690,7 @@ public:
 	/**
 	 * Builds a `BrokerData` containing the list of values.
 	 */
-	BrokerData Build() &&
-		{
-		return BrokerData{broker::data{std::move(values_)}};
-		}
+	BrokerData Build() && { return BrokerData{broker::data{std::move(values_)}}; }
 
 private:
 	broker::vector values_;

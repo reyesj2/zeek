@@ -51,15 +51,9 @@ namespace zeek
 class BrokerDataAccess
 	{
 public:
-	static broker::data& Unbox(BrokerData& data)
-		{
-		return data.value_;
-		}
+	static broker::data& Unbox(BrokerData& data) { return data.value_; }
 
-	static broker::data&& Unbox(BrokerData&& data)
-		{
-		return std::move(data.value_);
-		}
+	static broker::data&& Unbox(BrokerData&& data) { return std::move(data.value_); }
 	};
 
 	} // namespace zeek
