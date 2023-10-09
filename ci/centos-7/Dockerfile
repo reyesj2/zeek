@@ -37,8 +37,8 @@ RUN yum -y install \
     findutils \
     libpcap-devel \
     make \
-    openssl \
-    openssl-devel \
+    openssl11 \
+    openssl11-devel \
     rh-python38 \
     rh-python38-devel \
     rh-python38-python-devel \

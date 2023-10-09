@@ -15,7 +15,8 @@ static_config: &STATIC_CONFIG --build-type=release --disable-broker-tests --enab
 asan_sanitizer_config: &ASAN_SANITIZER_CONFIG --build-type=debug --disable-broker-tests --sanitizers=address --enable-fuzzers --enable-coverage --disable-spicy --ccache
 ubsan_sanitizer_config: &UBSAN_SANITIZER_CONFIG --build-type=debug --disable-broker-tests --sanitizers=undefined --enable-fuzzers --disable-spicy --ccache
 tsan_sanitizer_config: &TSAN_SANITIZER_CONFIG --build-type=debug --disable-broker-tests --sanitizers=thread --enable-fuzzers --disable-spicy --ccache
-openssl30_config: &OPENSSL30_CONFIG --build-type=release --disable-broker-tests --with-openssl=/opt/openssl --prefix=$CIRRUS_WORKING_DIR/install --ccache
+# Force CentoOS 7 to use OpenSSL 1.1 for the Spicy QUIC analyzer. Requires packages openssl11, openssl11-devel.
+centos7_config: &CENTOS7_CONFIG --build-type=release --disable-broker-tests --prefix=$CIRRUS_WORKING_DIR/install --ccache -DOPENSSL_ROOT_DIR=/usr/include/openssl11 -DOPENSSL_CRYPTO_LIBRARY=/usr/lib64/libcrypto.so.1.1 -DOPENSSL_SSL_LIBRARY=/usr/lib64/libssl.so.1.1
 
 resources_template: &RESOURCES_TEMPLATE
   cpu: *CPUS
@@ -210,6 +211,8 @@ centos7_task:
     << : *RESOURCES_TEMPLATE
   << : *CI_TEMPLATE
   << : *SKIP_TASK_ON_PR
+  env:
+    ZEEK_CI_CONFIGURE_FLAGS: *CENTOS7_CONFIG
 
 debian12_task:
   container:
