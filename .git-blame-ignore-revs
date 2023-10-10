@@ -27,3 +27,6 @@ a6378531dbc5c357926d98fe785bb719cc70e1b4
 
 # clang-format: Reformat Zeek in Spicy style
 fbee2256f939f33a8397933bd1203bb379be781c
+
+# clang-format: Format JSON with clang-format
+cb5af5715fc8d9c9b9b5c2c4c721e966c812118b
