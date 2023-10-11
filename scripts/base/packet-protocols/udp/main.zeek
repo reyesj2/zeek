@@ -1,5 +1,8 @@
 module PacketAnalyzer::UDP;
 
-#event zeek_init() &priority=20
-#	{
-#	}
+const gre_ports = { 4754/udp } &redef;
+
+event zeek_init() &priority=20
+	{
+	PacketAnalyzer::register_for_ports(PacketAnalyzer::ANALYZER_UDP, PacketAnalyzer::ANALYZER_GRE, gre_ports);
+	}
