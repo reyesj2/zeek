@@ -14,7 +14,7 @@ namespace zeek::detail
 EVP_MD_CTX* hash_init(HashAlgorithm alg)
 	{
 	EVP_MD_CTX* c = EVP_MD_CTX_new();
-	const EVP_MD* md;
+	const EVP_MD* md; = nullptr;
 
 	switch ( alg )
 		{
@@ -23,7 +23,8 @@ EVP_MD_CTX* hash_init(HashAlgorithm alg)
 			/* Allow this to work even if FIPS disables it */
 			EVP_MD_CTX_set_flags(c, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
 #endif
-			md = EVP_md5();
+			// md = EVP_md5();
+			md = EVP_MD_fetch(NULL, "MD5", "fips=no");
 			break;
 		case Hash_SHA1:
 			md = EVP_sha1();
@@ -45,7 +46,7 @@ EVP_MD_CTX* hash_init(HashAlgorithm alg)
 		}
 
 	if ( ! EVP_DigestInit_ex(c, md, NULL) )
-		reporter->InternalError("EVP_DigestInit failed");
+		reporter->InternalError("EVP_DigestInit failed - Jorge");
 
 	return c;
 	}
