@@ -14,7 +14,7 @@ namespace zeek::detail
 EVP_MD_CTX* hash_init(HashAlgorithm alg)
 	{
 	EVP_MD_CTX* c = EVP_MD_CTX_new();
-	const EVP_MD* md; = nullptr;
+	const EVP_MD* md;
 
 	switch ( alg )
 		{
